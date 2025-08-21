@@ -68,6 +68,14 @@ export default function Header() {
     },
   ];
 
+  if (currentUser?.role === "sales") {
+    navItems.push({
+      name: "Sales Dashboard",
+      href: "/sales/dashboard",
+      icon: Calendar,
+    });
+  }
+
   const canCreate =
     currentUser?.role === "admin" || currentUser?.role === "supervisor";
 
