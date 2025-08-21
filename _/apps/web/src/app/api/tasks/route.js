@@ -1,5 +1,6 @@
 import sql from "@/app/api/utils/sql";
 import { requireRole } from "@/app/api/utils/auth-middleware";
+import { z } from "zod";
 
 // Get all tasks
 export async function GET(request) {
@@ -8,12 +9,38 @@ export async function GET(request) {
     if (session instanceof Response) return session;
 
     const url = new URL(request.url);
-    const search = url.searchParams.get("search") || "";
-    const sortBy = url.searchParams.get("sortBy") || "created_at";
-    const sortOrder = url.searchParams.get("sortOrder") || "desc";
-    const status = url.searchParams.get("status") || "";
-    const priority = url.searchParams.get("priority") || "";
-    const taskType = url.searchParams.get("task_type") || "";
+    const querySchema = z.object({
+      search: z.string().trim().optional(),
+      sortBy: z
+        .enum(["created_at", "deadline", "priority", "status", "title", "task_type"])
+        .optional()
+        .default("created_at"),
+      sortOrder: z.enum(["asc", "desc"]).optional().default("desc"),
+      status: z
+        .enum(["pending", "assigned", "in_progress", "completed", "closed"])
+        .optional(),
+      priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
+      task_type: z.enum(["visit", "minor", "major", "kontrak"]).optional(),
+    });
+
+    const parsed = querySchema.safeParse(
+      Object.fromEntries(url.searchParams.entries()),
+    );
+    if (!parsed.success) {
+      return Response.json(
+        { error: "Invalid query parameters", details: parsed.error.flatten() },
+        { status: 400 },
+      );
+    }
+
+    const {
+      search,
+      sortBy,
+      sortOrder,
+      status,
+      priority,
+      task_type: taskType,
+    } = parsed.data;
 
     // Get current user info from users table
     const userQuery = await sql`
@@ -44,23 +71,24 @@ export async function GET(request) {
       queryParams.push(currentUser.id);
     }
 
-    // Search filter - Fix parameter numbering
+    // Search filter
     if (search) {
       const searchPattern = `%${search}%`;
-      whereConditions.push(`(
-        LOWER(t.title) LIKE LOWER($${getNextParamIndex()})
-        OR LOWER(t.description) LIKE LOWER($${getNextParamIndex()})
-        OR LOWER(c.name) LIKE LOWER($${getNextParamIndex()})
-        OR LOWER(u.unit_name) LIKE LOWER($${getNextParamIndex()})
-        OR LOWER(u.serial_number_engine) LIKE LOWER($${getNextParamIndex()})
-      )`);
-      queryParams.push(
-        searchPattern,
-        searchPattern,
-        searchPattern,
-        searchPattern,
-        searchPattern,
-      );
+      const fields = [
+        "t.title",
+        "t.description",
+        "c.name",
+        "u.unit_name",
+        "u.serial_number_engine",
+      ];
+      const conditions = fields
+        .map((field) => {
+          const idx = getNextParamIndex();
+          queryParams.push(searchPattern);
+          return `LOWER(${field}) LIKE LOWER($${idx})`;
+        })
+        .join(" OR ");
+      whereConditions.push(`(${conditions})`);
     }
 
     // Status filter
@@ -97,7 +125,7 @@ export async function GET(request) {
     };
 
     const sortColumn = validSortColumns[sortBy] || "t.created_at";
-    const order = sortOrder.toLowerCase() === "asc" ? "ASC" : "DESC";
+    const order = sortOrder === "asc" ? "ASC" : "DESC";
 
     // Priority ordering for sorting
     let orderClause;
@@ -168,56 +196,28 @@ export async function POST(request) {
     const session = await requireRole();
     if (session instanceof Response) return session;
 
-    const data = await request.json();
+    const bodySchema = z.object({
+      title: z.string().min(1),
+      task_type: z.enum(["visit", "minor", "major", "kontrak"]),
+      description: z.string().optional().nullable(),
+      priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
+      status: z
+        .enum(["pending", "assigned", "in_progress", "completed", "closed"])
+        .optional(),
+      unit_id: z.number().optional().nullable(),
+      company_id: z.number().optional().nullable(),
+      created_by: z.number().optional().nullable(),
+      deadline: z.string().optional().nullable(),
+    });
 
-    // Validate required fields
-    if (!data.title || !data.task_type) {
+    const parsedBody = bodySchema.safeParse(await request.json());
+    if (!parsedBody.success) {
       return Response.json(
-        { error: "Title and task type are required" },
+        { error: "Invalid input", details: parsedBody.error.flatten() },
         { status: 400 },
       );
     }
-
-    // Validate task_type
-    const validTaskTypes = ["visit", "minor", "major", "kontrak"];
-    if (!validTaskTypes.includes(data.task_type)) {
-      return Response.json(
-        {
-          error:
-            "Invalid task type. Must be one of: " + validTaskTypes.join(", "),
-        },
-        { status: 400 },
-      );
-    }
-
-    // Validate priority
-    const validPriorities = ["low", "medium", "high", "urgent"];
-    if (data.priority && !validPriorities.includes(data.priority)) {
-      return Response.json(
-        {
-          error:
-            "Invalid priority. Must be one of: " + validPriorities.join(", "),
-        },
-        { status: 400 },
-      );
-    }
-
-    // Validate status
-    const validStatuses = [
-      "pending",
-      "assigned",
-      "in_progress",
-      "completed",
-      "closed",
-    ];
-    if (data.status && !validStatuses.includes(data.status)) {
-      return Response.json(
-        {
-          error: "Invalid status. Must be one of: " + validStatuses.join(", "),
-        },
-        { status: 400 },
-      );
-    }
+    const data = parsedBody.data;
 
     const result = await sql(
       `

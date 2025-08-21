@@ -1,5 +1,6 @@
 import sql from "@/app/api/utils/sql";
 import { requireRole } from "@/app/api/utils/auth-middleware";
+import { z } from "zod";
 
 // Get all companies
 export async function GET(request) {
@@ -8,7 +9,21 @@ export async function GET(request) {
     if (session instanceof Response) return session;
 
     const url = new URL(request.url);
-    const search = url.searchParams.get("search");
+    const querySchema = z.object({
+      search: z.string().trim().optional(),
+    });
+
+    const parsed = querySchema.safeParse(
+      Object.fromEntries(url.searchParams.entries()),
+    );
+    if (!parsed.success) {
+      return Response.json(
+        { error: "Invalid query parameters", details: parsed.error.flatten() },
+        { status: 400 },
+      );
+    }
+
+    const { search } = parsed.data;
 
     let query = `SELECT * FROM companies WHERE deleted_at IS NULL`;
     const params = [];
@@ -38,14 +53,24 @@ export async function POST(request) {
     const session = await requireRole();
     if (session instanceof Response) return session;
 
-    const data = await request.json();
+    const bodySchema = z.object({
+      name: z.string().min(1),
+      address: z.string().optional().nullable(),
+      phone: z.string().optional().nullable(),
+      contact_person: z.string().optional().nullable(),
+      email: z.string().email().optional().nullable(),
+      customer_photo: z.string().optional().nullable(),
+      industry: z.string().optional().nullable(),
+    });
 
-    if (!data.name) {
+    const parsedBody = bodySchema.safeParse(await request.json());
+    if (!parsedBody.success) {
       return Response.json(
-        { error: "Company name is required" },
+        { error: "Invalid input", details: parsedBody.error.flatten() },
         { status: 400 },
       );
     }
+    const data = parsedBody.data;
 
     const result = await sql(
       `
