@@ -14,6 +14,7 @@ import { restart } from './plugins/restart';
 import { restartEnvFileChange } from './plugins/restartEnvFileChange';
 
 export default defineConfig({
+  publicDir: 'public',
   // Keep them available via import.meta.env.NEXT_PUBLIC_*
   envPrefix: 'NEXT_PUBLIC_',
   optimizeDeps: {
@@ -32,6 +33,9 @@ export default defineConfig({
     ],
   },
   logLevel: 'info',
+  build: {
+    copyPublicDir: true,
+  },
   plugins: [
     nextPublicProcessEnv(),
     restartEnvFileChange(),
