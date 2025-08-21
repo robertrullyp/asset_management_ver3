@@ -1,11 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  useQuery,
-  QueryClient,
-  QueryClientProvider,
-} from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Search,
   Plus,
@@ -20,6 +16,7 @@ import {
   Info,
 } from "lucide-react";
 import useUser from "@/utils/useUser";
+import useUnits from "@/utils/useUnits";
 import Header from "@/components/Header";
 
 // Create a stable query client
@@ -38,39 +35,7 @@ function HomePage() {
   const [searchTerm, setSearchTerm] = useState("");
   const { data: currentUser, loading: userLoading } = useUser();
 
-  const {
-    data: unitsData,
-    isLoading,
-    error,
-  } = useQuery({
-    queryKey: ["units", searchTerm],
-    queryFn: async () => {
-      const url = new URL("/api/units", window.location.origin);
-      if (searchTerm) url.searchParams.set("search", searchTerm);
-
-      const response = await fetch(url, {
-        headers: { Accept: "application/json" },
-      });
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        const errorText = await response.text();
-        throw new Error(
-          !response.ok && errorText && !errorText.trim().startsWith("<")
-            ? errorText
-            : `Failed to fetch units: ${response.status} ${response.statusText}`
-        );
-      }
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(
-          data.error ||
-            `Failed to fetch units: ${response.status} ${response.statusText}`
-        );
-      }
-      return data;
-    },
-  });
+  const { data: unitsData, isLoading, error } = useUnits(searchTerm);
 
   const units = unitsData?.units || [];
 
