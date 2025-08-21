@@ -1,13 +1,11 @@
 import sql from "@/app/api/utils/sql";
-import { auth } from "@/auth";
+import { requireRole } from "@/app/api/utils/auth-middleware";
 
 // Get all tasks
 export async function GET(request) {
   try {
-    const session = await auth();
-    if (!session) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const session = await requireRole();
+    if (session instanceof Response) return session;
 
     const url = new URL(request.url);
     const search = url.searchParams.get("search") || "";
@@ -167,6 +165,9 @@ export async function GET(request) {
 // Create new task
 export async function POST(request) {
   try {
+    const session = await requireRole();
+    if (session instanceof Response) return session;
+
     const data = await request.json();
 
     // Validate required fields

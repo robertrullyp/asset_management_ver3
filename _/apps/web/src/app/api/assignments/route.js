@@ -1,8 +1,12 @@
 import sql from "@/app/api/utils/sql";
+import { requireRole } from "@/app/api/utils/auth-middleware";
 
 // Get all assignments with task, teknisi, and supervisor info
 export async function GET(request) {
   try {
+    const session = await requireRole();
+    if (session instanceof Response) return session;
+
     const url = new URL(request.url);
     const supervisor_id = url.searchParams.get("supervisor_id");
     const teknisi_id = url.searchParams.get("teknisi_id");
@@ -77,6 +81,9 @@ export async function GET(request) {
 // Create new assignment
 export async function POST(request) {
   try {
+    const session = await requireRole();
+    if (session instanceof Response) return session;
+
     const data = await request.json();
     const { task_id, teknisi_id, supervisor_id, notes } = data;
 

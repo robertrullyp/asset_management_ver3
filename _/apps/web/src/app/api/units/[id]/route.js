@@ -1,9 +1,12 @@
 import sql from "@/app/api/utils/sql";
-import { auth } from "@/auth";
+import { requireRole } from "@/app/api/utils/auth-middleware";
 
 // Get single unit
 export async function GET(request, { params }) {
   try {
+    const authResult = await requireRole();
+    if (authResult instanceof Response) return authResult;
+
     const { id } = params;
 
     const units = await sql`
@@ -57,10 +60,8 @@ export async function GET(request, { params }) {
 // Update unit
 export async function PUT(request, { params }) {
   try {
-    const session = await auth();
-    if (!session?.user) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const session = await requireRole();
+    if (session instanceof Response) return session;
 
     const { id } = params;
     const data = await request.json();
@@ -157,10 +158,8 @@ export async function PUT(request, { params }) {
 // Delete unit (soft delete)
 export async function DELETE(request, { params }) {
   try {
-    const session = await auth();
-    if (!session?.user) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const session = await requireRole();
+    if (session instanceof Response) return session;
 
     const { id } = params;
 
