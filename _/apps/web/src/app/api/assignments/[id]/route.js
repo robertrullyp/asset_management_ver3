@@ -1,8 +1,12 @@
 import sql from "@/app/api/utils/sql";
+import { requireRole } from "@/app/api/utils/auth-middleware";
 
 // Get assignment by ID
 export async function GET(request, { params }) {
   try {
+    const authResult = await requireRole();
+    if (authResult instanceof Response) return authResult;
+
     const { id } = params;
 
     const assignments = await sql(`
@@ -47,6 +51,9 @@ export async function GET(request, { params }) {
 // Update assignment (start, complete, add notes)
 export async function PUT(request, { params }) {
   try {
+    const authResult = await requireRole();
+    if (authResult instanceof Response) return authResult;
+
     const { id } = params;
     const data = await request.json();
 
@@ -142,6 +149,9 @@ export async function PUT(request, { params }) {
 // Delete assignment (unassign task)
 export async function DELETE(request, { params }) {
   try {
+    const authResult = await requireRole();
+    if (authResult instanceof Response) return authResult;
+
     const { id } = params;
 
     // Get assignment info first

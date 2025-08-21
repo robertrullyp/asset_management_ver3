@@ -1,9 +1,12 @@
 import sql from "@/app/api/utils/sql";
-import { auth } from "@/auth";
+import { requireRole } from "@/app/api/utils/auth-middleware";
 
 // Get all companies
 export async function GET(request) {
   try {
+    const session = await requireRole();
+    if (session instanceof Response) return session;
+
     const url = new URL(request.url);
     const search = url.searchParams.get("search");
 
@@ -32,6 +35,9 @@ export async function GET(request) {
 // Create new company
 export async function POST(request) {
   try {
+    const session = await requireRole();
+    if (session instanceof Response) return session;
+
     const data = await request.json();
 
     if (!data.name) {

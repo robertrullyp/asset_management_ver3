@@ -1,8 +1,12 @@
 import sql from "@/app/api/utils/sql";
+import { requireRole } from "@/app/api/utils/auth-middleware";
 
 // Get single task
 export async function GET(request, { params }) {
   try {
+    const authResult = await requireRole();
+    if (authResult instanceof Response) return authResult;
+
     const { id } = params;
 
     const result = await sql(
@@ -42,6 +46,9 @@ export async function GET(request, { params }) {
 // Update task
 export async function PUT(request, { params }) {
   try {
+    const authResult = await requireRole();
+    if (authResult instanceof Response) return authResult;
+
     const { id } = params;
     const data = await request.json();
 
@@ -137,6 +144,9 @@ export async function PUT(request, { params }) {
 // Delete task (soft delete by marking as closed)
 export async function DELETE(request, { params }) {
   try {
+    const authResult = await requireRole();
+    if (authResult instanceof Response) return authResult;
+
     const { id } = params;
 
     const result = await sql(
