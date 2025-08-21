@@ -19,6 +19,8 @@ import { isAuthAction } from './is-auth-action';
 import { API_BASENAME, api } from './route-builder';
 neonConfig.webSocketConstructor = ws;
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 const als = new AsyncLocalStorage<{ requestId: string }>();
 
 for (const method of ['log', 'info', 'warn', 'error', 'debug'] as const) {
@@ -100,20 +102,20 @@ if (process.env.AUTH_SECRET) {
       cookies: {
         csrfToken: {
           options: {
-            secure: true,
-            sameSite: 'none',
+            secure: isProduction,
+            sameSite: isProduction ? 'none' : 'lax',
           },
         },
         sessionToken: {
           options: {
-            secure: true,
-            sameSite: 'none',
+            secure: isProduction,
+            sameSite: isProduction ? 'none' : 'lax',
           },
         },
         callbackUrl: {
           options: {
-            secure: true,
-            sameSite: 'none',
+            secure: isProduction,
+            sameSite: isProduction ? 'none' : 'lax',
           },
         },
       },
