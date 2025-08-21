@@ -34,6 +34,7 @@ export default defineConfig({
   },
   logLevel: 'info',
   build: {
+    outDir: 'build/client',
     copyPublicDir: true,
   },
   plugins: [
