@@ -1,6 +1,5 @@
 const authActions = [
     "providers",
-    "session",
     "csrf",
     "signin",
     "signout",
