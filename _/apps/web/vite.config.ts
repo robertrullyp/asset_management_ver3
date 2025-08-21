@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { reactRouter } from '@react-router/dev/vite';
 import { reactRouterHonoServer } from 'react-router-hono-server/dev';
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import babel from 'vite-plugin-babel';
 import tsconfigPaths from 'vite-tsconfig-paths';
 import { addRenderIds } from './plugins/addRenderIds';
@@ -12,6 +12,10 @@ import { loadFontsFromTailwindSource } from './plugins/loadFontsFromTailwindSour
 import { nextPublicProcessEnv } from './plugins/nextPublicProcessEnv';
 import { restart } from './plugins/restart';
 import { restartEnvFileChange } from './plugins/restartEnvFileChange';
+
+// Load environment variables from the nearest .env file before using them
+const env = loadEnv(process.env.NODE_ENV || 'development', process.cwd(), '');
+Object.assign(process.env, env);
 
 // Ensure a database connection string is configured before starting the server.
 if (!process.env.DATABASE_URL) {
