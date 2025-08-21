@@ -76,8 +76,10 @@ if (process.env.CORS_ORIGINS) {
   );
 }
 
-if (process.env.AUTH_SECRET) {
-  app.use(
+if (!process.env.AUTH_SECRET) {
+  throw new Error('AUTH_SECRET is required for auth endpoints');
+}
+app.use(
     '*',
     initAuthConfig((c) => ({
       secret: c.env.AUTH_SECRET,
@@ -206,10 +208,9 @@ if (process.env.AUTH_SECRET) {
             return null;
           },
         }),
-      ],
-    }))
-  );
-}
+        ],
+      }))
+    );
 app.all('/integrations/:path{.+}', async (c, next) => {
   const queryParams = c.req.query();
   const url = `${process.env.NEXT_PUBLIC_CREATE_BASE_URL ?? 'https://www.create.xyz'}/integrations/${c.req.param('path')}${Object.keys(queryParams).length > 0 ? `?${new URLSearchParams(queryParams).toString()}` : ''}`;
