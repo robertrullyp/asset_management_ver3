@@ -33,7 +33,9 @@ export function UnitQRCodeCard({ unit }) {
         <p className="text-sm text-gray-600 mb-4">
           QR code links to:{" "}
           <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">
-            /unit/{unit?.serial_number_engine || "ENGINE_SERIAL"}
+            {`/unit/${unit?.serial_number_engine || "ENGINE_SERIAL"}?token=${
+              unit?.access_token || "TOKEN"
+            }`}
           </span>
         </p>
         <p className="text-sm text-gray-600 mb-4">

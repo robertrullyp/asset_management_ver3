@@ -28,6 +28,11 @@ export default function PublicUnitPage({ params }) {
   const [locationError, setLocationError] = useState(null);
   const { data: user, loading: userLoading } = useUser();
 
+  const token =
+    typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search).get("token")
+      : null;
+
   // Log access when page loads
   useEffect(() => {
     const logAccess = async () => {
@@ -54,9 +59,11 @@ export default function PublicUnitPage({ params }) {
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["public-unit", serial],
+    queryKey: ["public-unit", serial, token],
     queryFn: async () => {
-      const response = await fetch(`/api/units/serial/${serial}`);
+      const response = await fetch(
+        `/api/units/serial/${serial}?token=${token}`,
+      );
       if (!response.ok) {
         throw new Error(
           `Failed to fetch unit: ${response.status} ${response.statusText}`,
