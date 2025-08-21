@@ -1,5 +1,6 @@
 import sql from "@/app/api/utils/sql";
 import { auth } from "@/auth";
+import crypto from "crypto";
 
 // Get all units with company info
 export async function GET(request) {
@@ -56,11 +57,8 @@ export async function POST(request) {
 
     const data = await request.json();
 
-    // Generate unique access token
-    const accessToken =
-      "unit_" +
-      Math.random().toString(36).substring(2, 15) +
-      Date.now().toString(36);
+    // Generate unique access token using a secure random UUID
+    const accessToken = crypto.randomUUID();
 
     const result = await sql(
       `

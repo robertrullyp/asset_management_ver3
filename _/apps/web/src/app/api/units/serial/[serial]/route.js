@@ -7,6 +7,13 @@ export async function GET(request, { params }) {
     return Response.json({ error: "Serial number is required" }, { status: 400 });
   }
 
+  const url = new URL(request.url);
+  const token = url.searchParams.get("token");
+
+  if (!token) {
+    return Response.json({ error: "Token is required" }, { status: 401 });
+  }
+
   try {
     // Get unit by serial number with limited information for public access
     const [unit] = await sql`
@@ -45,7 +52,7 @@ export async function GET(request, { params }) {
         c.industry
       FROM units u
       JOIN companies c ON u.company_id = c.id
-      WHERE u.serial_number = ${serial} AND u.is_active = true
+      WHERE u.serial_number = ${serial} AND u.access_token = ${token} AND u.is_active = true
     `;
 
     if (!unit) {
