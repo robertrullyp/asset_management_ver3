@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import {
-  useQuery,
   useMutation,
   useQueryClient,
   QueryClient,
@@ -23,6 +22,7 @@ import {
   Wrench,
 } from "lucide-react";
 import useUser from "@/utils/useUser";
+import useUnits from "@/utils/useUnits";
 import Header from "@/components/Header";
 
 // Create a stable query client
@@ -42,43 +42,7 @@ function UnitsPageContent() {
   const { data: currentUser } = useUser();
   const queryClient = useQueryClient();
 
-  const {
-    data: unitsData,
-    isLoading,
-    error,
-  } = useQuery({
-    queryKey: ["units", searchTerm],
-    queryFn: async () => {
-      const params = new URLSearchParams();
-      if (searchTerm) {
-        params.append("search", searchTerm);
-      }
-      const query = params.toString();
-
-      const response = await fetch(`/api/units${query ? `?${query}` : ""}`, {
-        headers: { Accept: "application/json" },
-      });
-
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        const errorText = await response.text();
-        throw new Error(
-          !response.ok && errorText && !errorText.trim().startsWith("<")
-            ? errorText
-            : `Expected application/json response, got ${contentType || "unknown"}`
-        );
-      }
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(
-          data.error ||
-            `Failed to fetch units: ${response.status} ${response.statusText}`
-        );
-      }
-      return data;
-    },
-  });
+  const { data: unitsData, isLoading, error } = useUnits(searchTerm);
 
   const deleteUnitMutation = useMutation({
     mutationFn: async (unitId) => {
