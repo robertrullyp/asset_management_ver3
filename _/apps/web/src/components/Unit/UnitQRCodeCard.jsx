@@ -1,6 +1,6 @@
 "use client";
 
-import { useUnitQrCode } from "../../hooks/useUnitQrCode";
+import { useUnitQrCode } from "@/hooks/useUnitQrCode";
 import { QrCode, Download } from "lucide-react";
 
 export function UnitQRCodeCard({ unit }) {
