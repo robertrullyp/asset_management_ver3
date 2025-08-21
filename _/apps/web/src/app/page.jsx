@@ -51,22 +51,23 @@ function HomePage() {
       const response = await fetch(url, {
         headers: { Accept: "application/json" },
       });
-      if (!response.ok) {
-        const contentType = response.headers.get("content-type");
-        if (contentType && contentType.includes("application/json")) {
-          const errorData = await response.json();
-          throw new Error(
-            errorData.error ||
-              `Failed to fetch units: ${response.status} ${response.statusText}`
-          );
-        }
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
         const errorText = await response.text();
         throw new Error(
           errorText ||
+            `Unexpected response format: ${response.status} ${response.statusText}`
+        );
+      }
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(
+          data.error ||
             `Failed to fetch units: ${response.status} ${response.statusText}`
         );
       }
-      return response.json();
+      return data;
     },
   });
 
