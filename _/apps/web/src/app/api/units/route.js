@@ -1,6 +1,7 @@
 import sql from "@/app/api/utils/sql";
 import { requireRole } from "@/app/api/utils/auth-middleware";
 import crypto from "crypto";
+import { z } from "zod";
 
 // Get all units with company info
 export async function GET(request) {
@@ -9,7 +10,25 @@ export async function GET(request) {
     if (session instanceof Response) return session;
 
     const url = new URL(request.url);
-    const search = url.searchParams.get("search");
+    const querySchema = z.object({
+      search: z.string().trim().max(100).optional(),
+      sortBy: z
+        .enum(["created_at", "unit_name"])
+        .optional()
+        .default("created_at"),
+    });
+
+    const parseResult = querySchema.safeParse(
+      Object.fromEntries(url.searchParams.entries()),
+    );
+    if (!parseResult.success) {
+      return Response.json(
+        { error: "Invalid query parameters", details: parseResult.error.flatten() },
+        { status: 400 },
+      );
+    }
+
+    const { search, sortBy } = parseResult.data;
 
     let query = `
       SELECT 
@@ -29,17 +48,21 @@ export async function GET(request) {
     const params = [];
 
     if (search) {
-      query += ` AND (
-        LOWER(u.unit_name) LIKE LOWER($1) OR 
-        LOWER(u.model) LIKE LOWER($1) OR 
-        LOWER(u.serial_number) LIKE LOWER($1) OR
-        LOWER(u.serial_number_engine) LIKE LOWER($1) OR
-        LOWER(c.name) LIKE LOWER($1)
-      )`;
       params.push(`%${search}%`);
+      query += ` AND (
+        LOWER(u.unit_name) LIKE LOWER($${params.length}) OR
+        LOWER(u.model) LIKE LOWER($${params.length}) OR
+        LOWER(u.serial_number) LIKE LOWER($${params.length}) OR
+        LOWER(u.serial_number_engine) LIKE LOWER($${params.length}) OR
+        LOWER(c.name) LIKE LOWER($${params.length})
+      )`;
     }
 
-    query += ` ORDER BY u.created_at DESC`;
+    const sortColumns = {
+      created_at: "u.created_at",
+      unit_name: "u.unit_name",
+    };
+    query += ` ORDER BY ${sortColumns[sortBy]} DESC`;
 
     const units = await sql(query, params);
 
@@ -56,7 +79,46 @@ export async function POST(request) {
     const session = await requireRole();
     if (session instanceof Response) return session;
 
-    const data = await request.json();
+    const bodySchema = z.object({
+      company_id: z.number().int().optional().nullable(),
+      unit_name: z.string().min(1),
+      model: z.string().optional().nullable(),
+      model_engine: z.string().optional().nullable(),
+      model_generator: z.string().optional().nullable(),
+      serial_number: z.string().optional().nullable(),
+      serial_number_engine: z.string().optional().nullable(),
+      serial_number_generator: z.string().optional().nullable(),
+      install_date: z.string().optional().nullable(),
+      specifications: z.string().optional().nullable(),
+      warranty_end: z.string().optional().nullable(),
+      register_date: z.string().optional().nullable(),
+      frequency_hz: z.number().optional().nullable(),
+      rpm: z.number().optional().nullable(),
+      module_control: z.string().optional().nullable(),
+      system_operation: z.string().optional().nullable(),
+      operation_mode: z.string().optional().nullable(),
+      transfer_system: z.string().optional().nullable(),
+      oil_capacity_liters: z.number().optional().nullable(),
+      oil_type: z.string().optional().nullable(),
+      fuel_filter_part_number: z.string().optional().nullable(),
+      fuel_filter_qty: z.number().optional().default(1),
+      fuel_separator_part_number: z.string().optional().nullable(),
+      fuel_separator_qty: z.number().optional().default(1),
+      oil_filter_part_number: z.string().optional().nullable(),
+      oil_filter_qty: z.number().optional().default(1),
+      air_filter_part_number: z.string().optional().nullable(),
+      air_filter_qty: z.number().optional().default(1),
+      unit_photos: z.array(z.string()).optional().default([]),
+    });
+
+    const body = bodySchema.safeParse(await request.json());
+    if (!body.success) {
+      return Response.json(
+        { error: "Invalid input", details: body.error.flatten() },
+        { status: 400 },
+      );
+    }
+    const data = body.data;
 
     // Generate unique access token using a secure random UUID
     const accessToken = crypto.randomUUID();

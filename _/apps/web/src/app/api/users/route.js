@@ -1,12 +1,27 @@
 import sql from "@/app/api/utils/sql";
+import { z } from "zod";
 
 // Get all users
 export async function GET(request) {
   try {
     const url = new URL(request.url);
-    const search = url.searchParams.get("search");
-    const role = url.searchParams.get("role");
-    const active = url.searchParams.get("active");
+    const querySchema = z.object({
+      search: z.string().trim().optional(),
+      role: z.enum(["admin", "supervisor", "teknisi", "sales"]).optional(),
+      active: z.enum(["true", "false"]).optional(),
+    });
+
+    const parsed = querySchema.safeParse(
+      Object.fromEntries(url.searchParams.entries()),
+    );
+    if (!parsed.success) {
+      return Response.json(
+        { error: "Invalid query parameters", details: parsed.error.flatten() },
+        { status: 400 },
+      );
+    }
+
+    const { search, role, active } = parsed.data;
 
     let query = `
       SELECT 
@@ -34,10 +49,10 @@ export async function GET(request) {
       params.push(role);
     }
 
-    if (active !== null && active !== undefined) {
+    if (active !== undefined) {
       paramCount++;
       query += ` AND is_active = $${paramCount}`;
-      params.push(active === 'true');
+      params.push(active === "true");
     }
 
     query += ` ORDER BY created_at DESC`;
@@ -54,24 +69,22 @@ export async function GET(request) {
 // Create new user
 export async function POST(request) {
   try {
-    const data = await request.json();
+    const bodySchema = z.object({
+      name: z.string().min(1),
+      email: z.string().email(),
+      phone: z.string().optional().nullable(),
+      role: z.enum(["admin", "supervisor", "teknisi", "sales"]),
+      is_active: z.boolean().optional(),
+    });
 
-    // Validate required fields
-    if (!data.name || !data.email || !data.role) {
+    const parsedBody = bodySchema.safeParse(await request.json());
+    if (!parsedBody.success) {
       return Response.json(
-        { error: "Name, email, and role are required" }, 
-        { status: 400 }
+        { error: "Invalid input", details: parsedBody.error.flatten() },
+        { status: 400 },
       );
     }
-
-    // Validate role
-    const validRoles = ['admin', 'supervisor', 'teknisi', 'sales'];
-    if (!validRoles.includes(data.role)) {
-      return Response.json(
-        { error: "Invalid role. Must be one of: " + validRoles.join(', ') }, 
-        { status: 400 }
-      );
-    }
+    const data = parsedBody.data;
 
     // Check if email already exists
     const existingUser = await sql(
@@ -81,15 +94,15 @@ export async function POST(request) {
 
     if (existingUser.length > 0) {
       return Response.json(
-        { error: "Email already exists" }, 
+        { error: "Email already exists" },
         { status: 400 }
       );
     }
 
     const result = await sql(
       `
-      INSERT INTO users (name, email, phone, role, is_active) 
-      VALUES ($1, $2, $3, $4, $5) 
+      INSERT INTO users (name, email, phone, role, is_active)
+      VALUES ($1, $2, $3, $4, $5)
       RETURNING id, name, email, phone, role, is_active, created_at
       `,
       [
@@ -97,7 +110,7 @@ export async function POST(request) {
         data.email,
         data.phone || null,
         data.role,
-        data.is_active !== undefined ? data.is_active : true
+        data.is_active !== undefined ? data.is_active : true,
       ]
     );
 
