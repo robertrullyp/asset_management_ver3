@@ -1,0 +1,40 @@
+diff --git a/node_modules/@hono/auth-js/dist/react.cjs b/node_modules/@hono/auth-js/dist/react.cjs
+index 04dde10..7d26b8a 100644
+--- a/node_modules/@hono/auth-js/dist/react.cjs
++++ b/node_modules/@hono/auth-js/dist/react.cjs
+@@ -67,6 +67,15 @@ async function fetchData(path, config, logger2, req = {}) {
+       options.method = "POST";
+     }
+     const res = await fetch(url, options);
++    const contentType = res.headers.get("content-type");
++    if (!contentType || !contentType.includes("application/json")) {
++      logger2.error(
++        new ClientFetchError(
++          `Unexpected response content-type: ${contentType || "unknown"}`
++        )
++      );
++      return null;
++    }
+     const data = await res.json();
+     if (!res.ok) {
+       throw data;
+diff --git a/node_modules/@hono/auth-js/dist/react.js b/node_modules/@hono/auth-js/dist/react.js
+index 5dbdf59..4ff05a4 100644
+--- a/node_modules/@hono/auth-js/dist/react.js
++++ b/node_modules/@hono/auth-js/dist/react.js
+@@ -24,6 +24,15 @@ async function fetchData(path, config, logger2, req = {}) {
+       options.method = "POST";
+     }
+     const res = await fetch(url, options);
++    const contentType = res.headers.get("content-type");
++    if (!contentType || !contentType.includes("application/json")) {
++      logger2.error(
++        new ClientFetchError(
++          `Unexpected response content-type: ${contentType || "unknown"}`
++        )
++      );
++      return null;
++    }
+     const data = await res.json();
+     if (!res.ok) {
+       throw data;

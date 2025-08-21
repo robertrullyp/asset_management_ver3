@@ -12,6 +12,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, '../../'),
+      '@auth/create/react': '@hono/auth-js/react',
+      '@auth/create': path.resolve(__dirname, '../../__create/@auth/create.js'),
     },
   },
 });
