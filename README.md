@@ -10,10 +10,12 @@
 - Redis server
 
 ### Environment Variables
-Create a `.env` file in each app directory with the following keys.
+Create a `.env` file in each app directory with the following keys. Use the provided `.env.example` as a starting point and update the values for your environment.
 
 #### Web app
-- `DATABASE_URL` – PostgreSQL connection string.
+- `DATABASE_URL` – PostgreSQL connection string. Example:
+  `postgres://user:password@localhost:5432/asset_management`
+  The web server logs a detailed message and exits during startup if this variable is missing.
 - `AUTH_SECRET` – session secret for authentication.
 - `AUTH_URL` – base URL used by auth callbacks.
 - `REDIS_URL` – Redis connection string.

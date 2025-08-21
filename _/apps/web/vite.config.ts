@@ -13,6 +13,14 @@ import { nextPublicProcessEnv } from './plugins/nextPublicProcessEnv';
 import { restart } from './plugins/restart';
 import { restartEnvFileChange } from './plugins/restartEnvFileChange';
 
+// Ensure a database connection string is configured before starting the server.
+if (!process.env.DATABASE_URL) {
+  console.error(
+    'DATABASE_URL environment variable is required but was not provided. Please set it in your .env file.',
+  );
+  process.exit(1);
+}
+
 export default defineConfig({
   publicDir: 'public',
   // Keep them available via import.meta.env.NEXT_PUBLIC_*
