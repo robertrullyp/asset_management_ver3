@@ -28,4 +28,22 @@ describe('Units API route', () => {
     const res = await POST(req);
     expect(res.status).toBe(400);
   });
+
+  it('keeps falsy values when provided', async () => {
+    const sql = (await import('../utils/sql')).default;
+    const req = new Request('http://localhost/api/units', {
+      method: 'POST',
+      body: JSON.stringify({
+        unit_name: 'Test Unit',
+        serial_number: '',
+        fuel_filter_qty: 0
+      })
+    });
+
+    await POST(req);
+
+    const params = sql.mock.calls[0][1];
+    expect(params[5]).toBe('');
+    expect(params[22]).toBe(0);
+  });
 });
