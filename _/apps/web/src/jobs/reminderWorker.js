@@ -14,7 +14,7 @@ async function initWorker() {
   }
 
   try {
-    const connection = new Redis(url);
+    const connection = new Redis(url, { maxRetriesPerRequest: null });
     await connection.ping();
     reminderWorker = new Worker(
       "reminders",

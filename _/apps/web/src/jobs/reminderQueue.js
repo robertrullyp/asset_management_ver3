@@ -13,7 +13,7 @@ async function initQueue() {
   }
 
   try {
-    const connection = new Redis(url);
+    const connection = new Redis(url, { maxRetriesPerRequest: null });
     await connection.ping();
     reminderQueue = new Queue("reminders", { connection });
   } catch (err) {
