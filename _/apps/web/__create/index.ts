@@ -51,7 +51,10 @@ app.use('*', (c, next) => {
 app.use(contextStorage());
 
 app.onError((err, c) => {
-  if (c.req.method !== 'GET') {
+  const acceptsJSON = c.req.header('Accept')?.includes('application/json');
+  const isAPIRequest = c.req.path.startsWith(API_BASENAME) || acceptsJSON;
+
+  if (isAPIRequest) {
     return c.json(
       {
         error: 'An error occurred in your app',
@@ -60,6 +63,7 @@ app.onError((err, c) => {
       500
     );
   }
+
   return c.html(getHTMLForErrorPage(err), 200);
 });
 
