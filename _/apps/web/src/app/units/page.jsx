@@ -54,9 +54,17 @@ function UnitsPageContent() {
         params.append("search", searchTerm);
       }
 
-      const response = await fetch(`/api/units?${params}`);
+      const response = await fetch(`/api/units?${params}`, {
+        headers: { Accept: "application/json" },
+      });
       if (!response.ok) {
-        throw new Error("Failed to fetch units");
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Failed to fetch units");
+        }
+        const errorText = await response.text();
+        throw new Error(errorText || "Failed to fetch units");
       }
       return response.json();
     },
@@ -66,10 +74,16 @@ function UnitsPageContent() {
     mutationFn: async (unitId) => {
       const response = await fetch(`/api/units/${unitId}`, {
         method: "DELETE",
+        headers: { Accept: "application/json" },
       });
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to delete unit");
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Failed to delete unit");
+        }
+        const errorText = await response.text();
+        throw new Error(errorText || "Failed to delete unit");
       }
       return response.json();
     },

@@ -48,10 +48,22 @@ function HomePage() {
       const url = new URL("/api/units", window.location.origin);
       if (searchTerm) url.searchParams.set("search", searchTerm);
 
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        headers: { Accept: "application/json" },
+      });
       if (!response.ok) {
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          const errorData = await response.json();
+          throw new Error(
+            errorData.error ||
+              `Failed to fetch units: ${response.status} ${response.statusText}`
+          );
+        }
+        const errorText = await response.text();
         throw new Error(
-          `Failed to fetch units: ${response.status} ${response.statusText}`
+          errorText ||
+            `Failed to fetch units: ${response.status} ${response.statusText}`
         );
       }
       return response.json();
