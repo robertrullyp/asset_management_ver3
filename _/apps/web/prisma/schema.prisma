@@ -1,0 +1,68 @@
+// Prisma schema for asset management
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Company {
+  id            Int              @id @default(autoincrement())
+  name          String
+  address       String?
+  phone         String?
+  contactPerson String?          @map("contact_person")
+  email         String?
+  customerPhoto String?          @map("customer_photo")
+  industry      String?
+  contacts      CompanyContact[]
+  units         Unit[]
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt       @map("updated_at")
+  deletedAt     DateTime?        @map("deleted_at")
+}
+
+model CompanyContact {
+  id         Int      @id @default(autoincrement())
+  company    Company  @relation(fields: [companyId], references: [id])
+  companyId  Int      @map("company_id")
+  name       String
+  position   String?
+  email      String?
+  phone      String?
+  isPrimary  Boolean? @default(false) @map("is_primary")
+  notes      String?
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt       @map("updated_at")
+  deletedAt  DateTime? @map("deleted_at")
+}
+
+model Unit {
+  id                    Int            @id @default(autoincrement())
+  company               Company?       @relation(fields: [companyId], references: [id])
+  companyId             Int?           @map("company_id")
+  unitName              String         @map("unit_name")
+  model                 String?
+  serialNumber          String?        @map("serial_number")
+  installDate           DateTime?      @map("install_date")
+  accessToken           String         @unique @map("access_token")
+  specifications        String?
+  warrantyEnd           DateTime?      @map("warranty_end")
+  isActive              Boolean        @default(true) @map("is_active")
+  createdAt             DateTime       @default(now()) @map("created_at")
+  updatedAt             DateTime       @updatedAt       @map("updated_at")
+  deletedAt             DateTime?      @map("deleted_at")
+  serviceLogs           ServiceLog[]
+}
+
+model ServiceLog {
+  id        Int      @id @default(autoincrement())
+  unit      Unit     @relation(fields: [unitId], references: [id])
+  unitId    Int      @map("unit_id")
+  hourMeter Int      @map("hour_meter")
+  notes     String?
+  createdAt DateTime @default(now()) @map("created_at")
+}
