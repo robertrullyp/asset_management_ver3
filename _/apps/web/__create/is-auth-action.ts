@@ -6,6 +6,7 @@ const authActions = [
     "callback",
     "verify-request",
     "error",
+    "session",
     "webauthn-options",
 ]
 
