@@ -45,19 +45,23 @@ function HomePage() {
   } = useQuery({
     queryKey: ["units", searchTerm],
     queryFn: async () => {
-      const url = new URL("/api/units", window.location.origin);
-      if (searchTerm) url.searchParams.set("search", searchTerm);
+      const params = new URLSearchParams();
+      if (searchTerm) {
+        params.append("search", searchTerm);
+      }
+      const query = params.toString();
 
-      const response = await fetch(url, {
+      const response = await fetch(`/api/units${query ? `?${query}` : ""}`, {
         headers: { Accept: "application/json" },
       });
+
       const contentType = response.headers.get("content-type");
       if (!contentType || !contentType.includes("application/json")) {
         const errorText = await response.text();
         throw new Error(
           !response.ok && errorText && !errorText.trim().startsWith("<")
             ? errorText
-            : `Failed to fetch units: ${response.status} ${response.statusText}`
+            : `Expected application/json response, got ${contentType || "unknown"}`
         );
       }
 
