@@ -61,8 +61,9 @@ function UnitsPageContent() {
       if (!contentType || !contentType.includes("application/json")) {
         const errorText = await response.text();
         throw new Error(
-          errorText ||
-            `Unexpected response format: ${response.status} ${response.statusText}`
+          !response.ok && errorText && !errorText.trim().startsWith("<")
+            ? errorText
+            : `Failed to fetch units: ${response.status} ${response.statusText}`
         );
       }
 
