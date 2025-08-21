@@ -7,9 +7,9 @@ CREATE TABLE IF NOT EXISTS consumable_items (
 
 CREATE TABLE IF NOT EXISTS unit_consumables (
   id SERIAL PRIMARY KEY,
-  unit_id INTEGER NOT NULL REFERENCES units(id) ON DELETE CASCADE,
+  unit_id INTEGER NOT NULL REFERENCES "public"."Unit"("id") ON DELETE CASCADE,
   consumable_id INTEGER NOT NULL REFERENCES consumable_items(id),
-  service_log_id INTEGER REFERENCES service_logs(id) ON DELETE CASCADE,
+  service_log_id INTEGER REFERENCES "public"."ServiceLog"("id") ON DELETE CASCADE,
   quantity INTEGER NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
