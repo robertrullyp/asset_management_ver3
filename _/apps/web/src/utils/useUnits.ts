@@ -11,23 +11,46 @@ const fetchUnits = async (searchTerm: string): Promise<UnitsResponse> => {
 
   const response = await fetch(url.toString(), {
     headers: { Accept: "application/json" },
+    credentials: "include",
   });
+
   const contentType = response.headers.get("content-type");
+  let data: UnitsResponse;
+
   if (!contentType || !contentType.includes("application/json")) {
-    const errorText = await response.text();
-    throw new Error(
-      !response.ok && errorText && !errorText.trim().startsWith("<")
-        ? errorText
-        : `Failed to fetch units: ${response.status} ${response.statusText}`
-    );
+    const text = await response.text();
+    const lower = text.toLowerCase();
+
+    if (
+      text.trim().startsWith("<") ||
+      lower.includes("signin") ||
+      lower.includes("sign-in") ||
+      lower.includes("login") ||
+      lower.includes("unauth")
+    ) {
+      throw new Error("Unauthorized – redirecting to sign-in");
+    }
+
+    try {
+      data = JSON.parse(text);
+    } catch {
+      throw new Error(
+        !response.ok && text
+          ? text
+          : `Failed to fetch units: ${response.status} ${response.statusText}`
+      );
+    }
+  } else {
+    data = await response.json();
   }
-  const data = await response.json();
+
   if (!response.ok) {
     throw new Error(
       data.error ||
         `Failed to fetch units: ${response.status} ${response.statusText}`
     );
   }
+
   return data;
 };
 
