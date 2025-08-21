@@ -1,7 +1,7 @@
 import sql from "@/app/api/utils/sql";
 import { requireRole } from "@/app/api/utils/auth-middleware";
 import { z } from "zod";
-import { scheduleReminder } from "@/jobs/reminderQueue";
+import { scheduleReminder, reminderQueue } from "@/jobs/reminderQueue";
 
 export async function GET(request, { params }) {
   const session = await requireRole(["sales", "admin"]);
@@ -53,7 +53,11 @@ export async function PUT(request, { params }) {
   }
   const reminder = result[0];
   if (data.remind_at) {
-    await scheduleReminder(reminder);
+    if (reminderQueue) {
+      await scheduleReminder(reminder);
+    } else {
+      console.warn("Reminder queue not initialized; skipping scheduling");
+    }
   }
   return Response.json({ reminder });
 }

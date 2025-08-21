@@ -1,7 +1,7 @@
 import sql from "@/app/api/utils/sql";
 import { requireRole } from "@/app/api/utils/auth-middleware";
 import { z } from "zod";
-import { scheduleReminder } from "@/jobs/reminderQueue";
+import { scheduleReminder, reminderQueue } from "@/jobs/reminderQueue";
 
 // List reminders or create new reminder
 export async function GET(request) {
@@ -49,7 +49,11 @@ export async function POST(request) {
   );
 
   const reminder = result[0];
-  await scheduleReminder(reminder);
+  if (reminderQueue) {
+    await scheduleReminder(reminder);
+  } else {
+    console.warn("Reminder queue not initialized; skipping scheduling");
+  }
 
   return Response.json({ reminder }, { status: 201 });
 }
