@@ -25,7 +25,7 @@ export async function GET() {
   }
 }
 
-// Create service log with materials and photos
+// Create service log with materials, consumables and photos
 export async function POST(request) {
   try {
     const session = await requireRole();
@@ -44,6 +44,15 @@ export async function POST(request) {
         )
         .optional()
         .default([]),
+      consumables: z
+        .array(
+          z.object({
+            consumable_id: z.number(),
+            quantity: z.number().positive(),
+          }),
+        )
+        .optional()
+        .default([]),
       photos: z.array(z.string()).optional().default([]),
     });
 
@@ -54,7 +63,7 @@ export async function POST(request) {
         { status: 400 },
       );
     }
-    const { unit_id, hour_meter, notes, materials, photos } = parsed.data;
+    const { unit_id, hour_meter, notes, materials, consumables, photos } = parsed.data;
 
     const log = await sql.transaction(async (tx) => {
       const [inserted] = await tx`
@@ -71,6 +80,17 @@ export async function POST(request) {
         await tx`
           UPDATE materials SET stock = stock - ${m.quantity}
           WHERE id = ${m.material_id}
+        `;
+      }
+
+      for (const c of consumables) {
+        await tx`
+          INSERT INTO unit_consumables (service_log_id, unit_id, consumable_id, quantity)
+          VALUES (${inserted.id}, ${unit_id}, ${c.consumable_id}, ${c.quantity})
+        `;
+        await tx`
+          UPDATE consumable_items SET stock = stock - ${c.quantity}
+          WHERE id = ${c.consumable_id}
         `;
       }
 

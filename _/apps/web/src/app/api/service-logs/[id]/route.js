@@ -2,7 +2,7 @@ import sql from "@/app/api/utils/sql";
 import { requireRole } from "@/app/api/utils/auth-middleware";
 import { z } from "zod";
 
-// Get single service log with materials and photos
+// Get single service log with materials, consumables and photos
 export async function GET(request, { params }) {
   try {
     const session = await requireRole();
@@ -28,6 +28,13 @@ export async function GET(request, { params }) {
       WHERE slm.service_log_id = ${id}
     `;
 
+    const consumables = await sql`
+      SELECT uc.consumable_id, uc.quantity, ci.name as consumable_name
+      FROM unit_consumables uc
+      LEFT JOIN consumable_items ci ON uc.consumable_id = ci.id
+      WHERE uc.service_log_id = ${id}
+    `;
+
     const photos = await sql`
       SELECT url FROM service_log_photos WHERE service_log_id = ${id}
     `;
@@ -36,6 +43,7 @@ export async function GET(request, { params }) {
       service_log: {
         ...logs[0],
         materials,
+        consumables,
         photos,
       },
     });
@@ -67,6 +75,15 @@ export async function PUT(request, { params }) {
         )
         .optional()
         .default([]),
+      consumables: z
+        .array(
+          z.object({
+            consumable_id: z.number(),
+            quantity: z.number().positive(),
+          }),
+        )
+        .optional()
+        .default([]),
       photos: z.array(z.string()).optional().default([]),
     });
 
@@ -77,7 +94,7 @@ export async function PUT(request, { params }) {
         { status: 400 },
       );
     }
-    const { hour_meter, notes, materials, photos } = parsed.data;
+    const { hour_meter, notes, materials, consumables, photos } = parsed.data;
 
     await sql.transaction(async (tx) => {
       await tx`
@@ -87,11 +104,11 @@ export async function PUT(request, { params }) {
         WHERE id = ${id}
       `;
 
-      const existing = await tx`
+      const existingMaterials = await tx`
         SELECT material_id, quantity FROM service_log_materials
         WHERE service_log_id = ${id}
       `;
-      for (const m of existing) {
+      for (const m of existingMaterials) {
         await tx`UPDATE materials SET stock = stock + ${m.quantity} WHERE id = ${m.material_id}`;
       }
       await tx`DELETE FROM service_log_materials WHERE service_log_id = ${id}`;
@@ -103,6 +120,27 @@ export async function PUT(request, { params }) {
         `;
         await tx`
           UPDATE materials SET stock = stock - ${m.quantity} WHERE id = ${m.material_id}
+        `;
+      }
+
+      const existingConsumables = await tx`
+        SELECT consumable_id, quantity FROM unit_consumables
+        WHERE service_log_id = ${id}
+      `;
+      for (const c of existingConsumables) {
+        await tx`UPDATE consumable_items SET stock = stock + ${c.quantity} WHERE id = ${c.consumable_id}`;
+      }
+      await tx`DELETE FROM unit_consumables WHERE service_log_id = ${id}`;
+
+      const unitRow = await tx`SELECT unit_id FROM service_logs WHERE id = ${id}`;
+      const unitId = unitRow[0].unit_id;
+      for (const c of consumables) {
+        await tx`
+          INSERT INTO unit_consumables (service_log_id, unit_id, consumable_id, quantity)
+          VALUES (${id}, ${unitId}, ${c.consumable_id}, ${c.quantity})
+        `;
+        await tx`
+          UPDATE consumable_items SET stock = stock - ${c.quantity} WHERE id = ${c.consumable_id}
         `;
       }
 
@@ -142,6 +180,16 @@ export async function DELETE(request, { params }) {
         await tx`UPDATE materials SET stock = stock + ${m.quantity} WHERE id = ${m.material_id}`;
       }
       await tx`DELETE FROM service_log_materials WHERE service_log_id = ${id}`;
+
+      const consumables = await tx`
+        SELECT consumable_id, quantity FROM unit_consumables
+        WHERE service_log_id = ${id}
+      `;
+      for (const c of consumables) {
+        await tx`UPDATE consumable_items SET stock = stock + ${c.quantity} WHERE id = ${c.consumable_id}`;
+      }
+      await tx`DELETE FROM unit_consumables WHERE service_log_id = ${id}`;
+
       await tx`DELETE FROM service_log_photos WHERE service_log_id = ${id}`;
       await tx`DELETE FROM service_logs WHERE id = ${id}`;
     });
