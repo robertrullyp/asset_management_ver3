@@ -4,7 +4,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import useUnits from "./useUnits";
 
 const createWrapper = () => {
-  const queryClient = new QueryClient();
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+    },
+  });
   // eslint-disable-next-line react/display-name
   return ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
@@ -48,6 +52,24 @@ describe("useUnits", () => {
 
     await waitFor(() => {
       expect(result.current.error).toBeDefined();
+    });
+  });
+
+  it("throws auth error when HTML is returned", async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: { get: () => null },
+      text: async () => "<html>Signin</html>",
+    } as any);
+
+    const { result } = renderHook(() => useUnits(""), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.error?.message).toBe(
+        "Unauthorized – redirecting to sign-in"
+      );
     });
   });
 });
