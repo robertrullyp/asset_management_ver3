@@ -44,4 +44,5 @@ process.on("beforeExit", async () => {
   redis?.disconnect();
 });
 
+
 export default prisma;
