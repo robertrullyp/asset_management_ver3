@@ -7,8 +7,11 @@
 		"build": "vite build",
 		"typecheck": "react-router typegen && tsc --noEmit",
 		"reminder-worker": "node src/jobs/reminderWorker.js",
-                "prisma:migrate": "prisma migrate dev",
-                "prisma:seed": "prisma db seed"
+		"prisma:migrate": "prisma migrate dev",
+		"prisma:seed": "prisma db seed",
+		"lint": "eslint .",
+		"test": "vitest run && vitest run --config src/app/api/vitest.config.ts",
+		"test:e2e": "playwright test"
 	},
 	"dependencies": {
 		"@auth/core": "^0.37.2",
@@ -77,6 +80,7 @@
 		"@babel/preset-typescript": "^7.27.1",
 		"@babel/traverse": "^7.27.1",
 		"@babel/types": "^7.27.1",
+		"@playwright/test": "^1.55.0",
 		"@react-router/dev": "^7.6.0",
 		"@tailwindcss/vite": "^4.1.4",
 		"@testing-library/jest-dom": "^6.6.4",
@@ -88,6 +92,7 @@
 		"@types/ws": "^8.18.1",
 		"autoprefixer": "^10.4.21",
 		"babel-plugin-react-require": "^4.0.3",
+		"eslint": "^9.33.0",
 		"fast-glob": "^3.3.3",
 		"jsdom": "^26.1.0",
 		"micromatch": "^4.0.8",
@@ -101,9 +106,9 @@
 		"vitest": "^3.2.4"
 	},
 	"prisma": {
-                "seed": "node prisma/seed.js"
-        },
-        "overrides": {
+		"seed": "node prisma/seed.js"
+	},
+	"overrides": {
 		"next-themes": "^0.3.0"
 	}
 }
