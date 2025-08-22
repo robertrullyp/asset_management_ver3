@@ -137,18 +137,30 @@ export async function PUT(request, { params }) {
         select: { unitId: true },
       });
       const unitId = unit.unitId;
-      for (const c of consumables) {
+
+      const consumableTotals = consumables.reduce(
+        (acc, { consumable_id, quantity }) => {
+          acc.set(
+            consumable_id,
+            (acc.get(consumable_id) ?? 0) + quantity,
+          );
+          return acc;
+        },
+        new Map(),
+      );
+
+      for (const [consumableId, totalQty] of consumableTotals) {
         await tx.unitConsumable.create({
           data: {
             serviceLogId: Number(id),
             unitId,
-            consumableId: c.consumable_id,
-            quantity: c.quantity,
+            consumableId,
+            quantity: totalQty,
           },
         });
         await tx.consumableItem.update({
-          where: { id: c.consumable_id },
-          data: { stock: { decrement: c.quantity } },
+          where: { id: consumableId },
+          data: { stock: { decrement: totalQty } },
         });
       }
 
