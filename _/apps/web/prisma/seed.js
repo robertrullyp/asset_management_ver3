@@ -5,6 +5,7 @@ const prisma = new PrismaClient();
 async function main() {
   // Clear existing records to allow reseeding without unique constraint errors
   await prisma.$transaction([
+    prisma.user.deleteMany(),
     prisma.unitConsumable.deleteMany(),
     prisma.serviceLog.deleteMany(),
     prisma.unit.deleteMany(),
@@ -13,13 +14,22 @@ async function main() {
     prisma.company.deleteMany(),
   ]);
 
-  // Ensure test user accounts exist
+  // Seed test user accounts
   const testAccounts = [
     { name: 'Admin User', email: 'admin@test.com', role: 'admin' },
     { name: 'Supervisor User', email: 'supervisor@test.com', role: 'supervisor' },
     { name: 'Teknisi User', email: 'teknisi@test.com', role: 'teknisi' },
     { name: 'Sales User', email: 'sales@test.com', role: 'sales' },
   ];
+
+  await prisma.user.createMany({
+    data: testAccounts.map((account) => ({
+      ...account,
+      isActive: true,
+      phoneVerified: true,
+    })),
+    skipDuplicates: true,
+  });
 
   for (const account of testAccounts) {
     await prisma.user.upsert({
