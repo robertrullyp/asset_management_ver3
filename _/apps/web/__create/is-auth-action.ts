@@ -8,6 +8,7 @@ const authActions = [
     "error",
     "session",
     "webauthn-options",
+    "signup",
 ]
 
 export function isAuthAction(
