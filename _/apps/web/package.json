@@ -14,7 +14,8 @@
                 "test": "vitest run && vitest run --config src/app/api/vitest.config.ts",
                 "test:e2e": "playwright test",
                 "postinstall": "patch-package",
-                "preprisma:seed": "prisma generate"
+                "preprisma:seed": "prisma generate",
+                "prisma:reset": "prisma migrate reset"
 	},
 	"dependencies": {
 		"@auth/core": "^0.37.2",
