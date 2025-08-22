@@ -3,6 +3,16 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
+  // Clear existing records to allow reseeding without unique constraint errors
+  await prisma.$transaction([
+    prisma.unitConsumable.deleteMany(),
+    prisma.serviceLog.deleteMany(),
+    prisma.unit.deleteMany(),
+    prisma.companyContact.deleteMany(),
+    prisma.consumableItem.deleteMany(),
+    prisma.company.deleteMany(),
+  ]);
+
   const acme = await prisma.company.create({
     data: {
       name: 'Acme Corp',
