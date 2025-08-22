@@ -18,37 +18,30 @@ if (url) {
   });
   try {
     await redis.ping();
-    const cacheTime = 300;
-    prisma = prisma.$extends({
-      query: {
-        $allModels: {
-          async findMany({ model, args, query }) {
-            const key = `${model}:findMany:${JSON.stringify(args)}`;
-            const cached = await redis.get(key);
-            if (cached) return JSON.parse(cached);
-            const result = await query(args);
-            await redis.set(key, JSON.stringify(result), "EX", cacheTime);
-            return result;
-          },
-          async findUnique({ model, args, query }) {
-            const key = `${model}:findUnique:${JSON.stringify(args)}`;
-            const cached = await redis.get(key);
-            if (cached) return JSON.parse(cached);
-            const result = await query(args);
-            await redis.set(key, JSON.stringify(result), "EX", cacheTime);
-            return result;
-          },
-          async findFirst({ model, args, query }) {
-            const key = `${model}:findFirst:${JSON.stringify(args)}`;
-            const cached = await redis.get(key);
-            if (cached) return JSON.parse(cached);
-            const result = await query(args);
-            await redis.set(key, JSON.stringify(result), "EX", cacheTime);
-            return result;
+    const cacheTime = Number(process.env.REDIS_CACHE_TTL ?? 300);
+
+    const createCacheExtension = (redis, ttl) => {
+      const cached = (action) => async ({ model, args, query }) => {
+        const key = `${model}:${action}:${JSON.stringify(args)}`;
+        const cachedValue = await redis.get(key);
+        if (cachedValue) return JSON.parse(cachedValue);
+        const result = await query(args);
+        await redis.set(key, JSON.stringify(result), "EX", ttl);
+        return result;
+      };
+
+      return {
+        query: {
+          $allModels: {
+            findMany: cached("findMany"),
+            findUnique: cached("findUnique"),
+            findFirst: cached("findFirst"),
           },
         },
-      },
-    });
+      };
+    };
+
+    prisma = prisma.$extends(createCacheExtension(redis, cacheTime));
   } catch (err) {
     console.warn("Unable to connect to Redis; Redis cache disabled", err);
     redis.disconnect();
