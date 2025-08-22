@@ -93,6 +93,21 @@ model UnitConsumable {
   @@map("unit_consumables")
 }
 
+model User {
+  id            Int      @id @default(autoincrement())
+  name          String
+  email         String   @unique
+  phone         String?
+  role          String
+  isActive      Boolean  @default(true)  @map("is_active")
+  phoneVerified Boolean  @default(false) @map("phone_verified")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt      @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+
+  @@map("users")
+}
+
 model AuthUser {
   id            String         @id @default(uuid()) @db.Uuid
   name          String?
