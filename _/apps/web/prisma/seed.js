@@ -13,6 +13,27 @@ async function main() {
     prisma.company.deleteMany(),
   ]);
 
+  // Ensure test user accounts exist
+  const testAccounts = [
+    { name: 'Admin User', email: 'admin@test.com', role: 'admin' },
+    { name: 'Supervisor User', email: 'supervisor@test.com', role: 'supervisor' },
+    { name: 'Teknisi User', email: 'teknisi@test.com', role: 'teknisi' },
+    { name: 'Sales User', email: 'sales@test.com', role: 'sales' },
+  ];
+
+  for (const account of testAccounts) {
+    await prisma.$executeRaw`
+      INSERT INTO users (name, email, role, is_active, phone_verified)
+      VALUES (${account.name}, ${account.email}, ${account.role}, true, true)
+      ON CONFLICT (email) DO UPDATE SET
+        name = EXCLUDED.name,
+        role = EXCLUDED.role,
+        is_active = true,
+        phone_verified = true,
+        updated_at = CURRENT_TIMESTAMP;
+    `;
+  }
+
   const acme = await prisma.company.create({
     data: {
       name: 'Acme Corp',
