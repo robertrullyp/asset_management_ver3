@@ -52,6 +52,17 @@ bun run prisma:seed
 
 The seed script populates sample companies, contacts, units and service logs.
 
+### Test Accounts
+
+The database seed also ensures default test users exist for authentication:
+
+| Role        | Email                | Password     |
+|-------------|---------------------|--------------|
+| Admin       | admin@test.com       | password123  |
+| Supervisor  | supervisor@test.com  | password123  |
+| Teknisi     | teknisi@test.com     | password123  |
+| Sales       | sales@test.com       | password123  |
+
 ## Running the Web App
 
 ```
