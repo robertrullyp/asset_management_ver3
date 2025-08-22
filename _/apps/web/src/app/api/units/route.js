@@ -24,7 +24,10 @@ export async function GET(request) {
     if (!parseResult.success) {
       return Response.json(
         { error: "Invalid query parameters", details: parseResult.error.flatten() },
-        { status: 400 },
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -66,10 +69,19 @@ export async function GET(request) {
 
     const units = await sql(query, params);
 
-    return Response.json({ units });
+    return Response.json(
+      { units },
+      { headers: { "Content-Type": "application/json" } },
+    );
   } catch (error) {
     console.error("Error fetching units:", error);
-    return Response.json({ error: "Failed to fetch units" }, { status: 500 });
+    return Response.json(
+      { error: "Failed to fetch units" },
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
   }
 }
 
@@ -115,7 +127,10 @@ export async function POST(request) {
     if (!body.success) {
       return Response.json(
         { error: "Invalid input", details: body.error.flatten() },
-        { status: 400 },
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        },
       );
     }
     const data = body.data;
@@ -174,7 +189,10 @@ export async function POST(request) {
       ],
     );
 
-    return Response.json({ unit: result[0] });
+    return Response.json(
+      { unit: result[0] },
+      { headers: { "Content-Type": "application/json" } },
+    );
   } catch (error) {
     console.error("Error creating unit:", error);
     return Response.json(
@@ -182,7 +200,10 @@ export async function POST(request) {
         error: "Failed to create unit",
         details: error.message,
       },
-      { status: 500 },
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      },
     );
   }
 }
