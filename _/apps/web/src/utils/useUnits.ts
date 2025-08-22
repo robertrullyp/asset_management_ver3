@@ -59,6 +59,21 @@ const fetchUnits = async (searchTerm: string): Promise<UnitsResponse> => {
     headers: { Accept: "application/json" },
     credentials: "include",
   });
+  const redirectToSignIn = () => {
+    try {
+      window.location.replace(
+        "/account/signin?callbackUrl=" +
+          encodeURIComponent(window.location.pathname + window.location.search)
+      );
+    } catch {
+      // Ignore navigation errors in non-browser environments
+    }
+  };
+
+  if (response.status === 401) {
+    redirectToSignIn();
+    throw new Error("Unauthorized – redirecting to sign-in");
+  }
 
   const contentType = response.headers.get("content-type");
   let data: UnitsResponse;
@@ -74,6 +89,7 @@ const fetchUnits = async (searchTerm: string): Promise<UnitsResponse> => {
       lower.includes("login") ||
       lower.includes("unauth")
     ) {
+      redirectToSignIn();
       throw new Error("Unauthorized – redirecting to sign-in");
     }
 
