@@ -23,6 +23,8 @@ model Company {
   createdAt     DateTime         @default(now()) @map("created_at")
   updatedAt     DateTime         @updatedAt @map("updated_at")
   deletedAt     DateTime?        @map("deleted_at")
+
+  @@map("companies")
 }
 
 model CompanyContact {
@@ -38,6 +40,8 @@ model CompanyContact {
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
+
+  @@map("company_contacts")
 }
 
 model Unit {
@@ -57,6 +61,8 @@ model Unit {
   deletedAt       DateTime?        @map("deleted_at")
   serviceLogs     ServiceLog[]
   unitConsumables UnitConsumable[]
+
+  @@map("units")
 }
 
 model ServiceLog {
@@ -68,6 +74,8 @@ model ServiceLog {
   createdAt       DateTime         @default(now()) @map("created_at")
   updatedAt       DateTime         @updatedAt @map("updated_at")
   unitConsumables UnitConsumable[]
+
+  @@map("service_logs")
 }
 
 model ConsumableItem {
@@ -114,7 +122,7 @@ model AuthUser {
   id            String        @id @default(uuid()) @db.Uuid
   name          String?
   email         String?       @unique
-  emailVerified DateTime?
+  emailVerified DateTime? @map("email_verified")
   image         String?
   accounts      AuthAccount[]
   sessions      AuthSession[]
@@ -124,10 +132,10 @@ model AuthUser {
 
 model AuthAccount {
   id                String   @id @default(uuid()) @db.Uuid
-  userId            String   @db.Uuid
+  userId            String   @db.Uuid @map("user_id")
   type              String
   provider          String
-  providerAccountId String
+  providerAccountId String   @map("provider_account_id")
   refreshToken      String?  @map("refresh_token")
   accessToken       String?  @map("access_token")
   expiresAt         Int?     @map("expires_at")
@@ -144,8 +152,8 @@ model AuthAccount {
 
 model AuthSession {
   id           String   @id @default(uuid()) @db.Uuid
-  sessionToken String   @unique
-  userId       String   @db.Uuid
+  sessionToken String   @unique @map("session_token")
+  userId       String   @db.Uuid @map("user_id")
   expires      DateTime
   user         AuthUser @relation(fields: [userId], references: [id], onDelete: Cascade)
 
