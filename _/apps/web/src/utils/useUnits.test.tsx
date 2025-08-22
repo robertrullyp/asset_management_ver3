@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -55,11 +56,31 @@ describe("useUnits", () => {
     });
   });
 
-  it("throws auth error when HTML is returned", async () => {
+  it("redirects and errors when HTML login page is returned", async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       headers: { get: () => null },
       text: async () => "<html>Signin</html>",
+    } as any);
+
+    const { result } = renderHook(() => useUnits(""), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.error?.message).toBe(
+        "Unauthorized – redirecting to sign-in"
+      );
+    });
+  });
+
+  it("redirects and errors on 401 status", async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      statusText: "Unauthorized",
+      headers: { get: () => "application/json" },
+      json: async () => ({ error: "Unauthorized" }),
     } as any);
 
     const { result } = renderHook(() => useUnits(""), {

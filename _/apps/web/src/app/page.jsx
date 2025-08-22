@@ -85,7 +85,7 @@ function HomePage() {
     return "Active";
   };
 
-  if (error) {
+  if (error && !error.message.toLowerCase().includes("unauthorized")) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
