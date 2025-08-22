@@ -1,4 +1,3 @@
-import sql from "@/app/api/utils/sql";
 import prisma from "@/app/api/utils/prisma";
 import { requireRole } from "@/app/api/utils/auth-middleware";
 import { z } from "zod";
@@ -10,42 +9,40 @@ export async function GET(request, { params }) {
     if (session instanceof Response) return session;
 
     const { id } = params;
+    const log = await prisma.serviceLog.findUnique({
+      where: { id: Number(id) },
+      include: {
+        unit: { select: { unitName: true } },
+        materials: { include: { material: { select: { name: true } } } },
+        unitConsumables: { include: { consumable: { select: { name: true } } } },
+        photos: { select: { url: true } },
+      },
+    });
 
-    const logs = await sql`
-      SELECT sl.*, u.unit_name
-      FROM service_logs sl
-      LEFT JOIN units u ON sl.unit_id = u.id
-      WHERE sl.id = ${id}
-    `;
-
-    if (logs.length === 0) {
+    if (!log) {
       return Response.json({ error: "Service log not found" }, { status: 404 });
     }
 
-    const materials = await sql`
-      SELECT slm.material_id, slm.quantity, m.name as material_name
-      FROM service_log_materials slm
-      LEFT JOIN materials m ON slm.material_id = m.id
-      WHERE slm.service_log_id = ${id}
-    `;
-
-    const consumables = await sql`
-      SELECT uc.consumable_id, uc.quantity, ci.name as consumable_name
-      FROM unit_consumables uc
-      LEFT JOIN consumable_items ci ON uc.consumable_id = ci.id
-      WHERE uc.service_log_id = ${id}
-    `;
-
-    const photos = await sql`
-      SELECT url FROM service_log_photos WHERE service_log_id = ${id}
-    `;
-
     return Response.json({
       service_log: {
-        ...logs[0],
-        materials,
-        consumables,
-        photos,
+        id: log.id,
+        unit_id: log.unitId,
+        hour_meter: log.hourMeter,
+        notes: log.notes,
+        created_at: log.createdAt,
+        updated_at: log.updatedAt,
+        unit_name: log.unit?.unitName,
+        materials: log.materials.map((m) => ({
+          material_id: m.materialId,
+          material_name: m.material?.name,
+          quantity: m.quantity,
+        })),
+        consumables: log.unitConsumables.map((c) => ({
+          consumable_id: c.consumableId,
+          consumable_name: c.consumable?.name,
+          quantity: c.quantity,
+        })),
+        photos: log.photos.map((p) => ({ url: p.url })),
       },
     });
   } catch (error) {
@@ -106,18 +103,32 @@ export async function PUT(request, { params }) {
         },
       });
 
-      const existingMaterials = await tx.$queryRaw`
-        SELECT material_id, quantity FROM service_log_materials
-        WHERE service_log_id = ${id}
-      `;
+      const existingMaterials = await tx.serviceLogMaterial.findMany({
+        where: { serviceLogId: Number(id) },
+        select: { materialId: true, quantity: true },
+      });
       for (const m of existingMaterials) {
-        await tx.$executeRaw`UPDATE materials SET stock = stock + ${m.quantity} WHERE id = ${m.material_id}`;
+        await tx.material.update({
+          where: { id: m.materialId },
+          data: { stock: { increment: m.quantity } },
+        });
       }
-      await tx.$executeRaw`DELETE FROM service_log_materials WHERE service_log_id = ${id}`;
+      await tx.serviceLogMaterial.deleteMany({
+        where: { serviceLogId: Number(id) },
+      });
 
       for (const m of materials) {
-        await tx.$executeRaw`INSERT INTO service_log_materials (service_log_id, material_id, quantity) VALUES (${id}, ${m.material_id}, ${m.quantity})`;
-        await tx.$executeRaw`UPDATE materials SET stock = stock - ${m.quantity} WHERE id = ${m.material_id}`;
+        await tx.serviceLogMaterial.create({
+          data: {
+            serviceLogId: Number(id),
+            materialId: m.material_id,
+            quantity: m.quantity,
+          },
+        });
+        await tx.material.update({
+          where: { id: m.material_id },
+          data: { stock: { decrement: m.quantity } },
+        });
       }
 
       const existingConsumables = await tx.unitConsumable.findMany({
@@ -164,9 +175,11 @@ export async function PUT(request, { params }) {
         });
       }
 
-      await tx.$executeRaw`DELETE FROM service_log_photos WHERE service_log_id = ${id}`;
+      await tx.serviceLogPhoto.deleteMany({ where: { serviceLogId: Number(id) } });
       for (const url of photos) {
-        await tx.$executeRaw`INSERT INTO service_log_photos (service_log_id, url) VALUES (${id}, ${url})`;
+        await tx.serviceLogPhoto.create({
+          data: { serviceLogId: Number(id), url },
+        });
       }
     });
 
@@ -189,14 +202,19 @@ export async function DELETE(request, { params }) {
     const { id } = params;
 
     await prisma.$transaction(async (tx) => {
-      const materials = await tx.$queryRaw`
-        SELECT material_id, quantity FROM service_log_materials
-        WHERE service_log_id = ${id}
-      `;
+      const materials = await tx.serviceLogMaterial.findMany({
+        where: { serviceLogId: Number(id) },
+        select: { materialId: true, quantity: true },
+      });
       for (const m of materials) {
-        await tx.$executeRaw`UPDATE materials SET stock = stock + ${m.quantity} WHERE id = ${m.material_id}`;
+        await tx.material.update({
+          where: { id: m.materialId },
+          data: { stock: { increment: m.quantity } },
+        });
       }
-      await tx.$executeRaw`DELETE FROM service_log_materials WHERE service_log_id = ${id}`;
+      await tx.serviceLogMaterial.deleteMany({
+        where: { serviceLogId: Number(id) },
+      });
 
       const consumables = await tx.unitConsumable.findMany({
         where: { serviceLogId: Number(id) },
@@ -210,7 +228,7 @@ export async function DELETE(request, { params }) {
       }
       await tx.unitConsumable.deleteMany({ where: { serviceLogId: Number(id) } });
 
-      await tx.$executeRaw`DELETE FROM service_log_photos WHERE service_log_id = ${id}`;
+      await tx.serviceLogPhoto.deleteMany({ where: { serviceLogId: Number(id) } });
       await tx.serviceLog.delete({ where: { id: Number(id) } });
     });
 
