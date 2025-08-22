@@ -1,4 +1,5 @@
 import sql from "@/app/api/utils/sql";
+import prisma from "@/app/api/utils/prisma";
 import { requireRole } from "@/app/api/utils/auth-middleware";
 import { z } from "zod";
 
@@ -96,60 +97,64 @@ export async function PUT(request, { params }) {
     }
     const { hour_meter, notes, materials, consumables, photos } = parsed.data;
 
-    await sql.transaction(async (tx) => {
-      await tx`
-        UPDATE service_logs
-        SET hour_meter = COALESCE(${hour_meter}, hour_meter),
-            notes = COALESCE(${notes}, notes)
-        WHERE id = ${id}
-      `;
+    await prisma.$transaction(async (tx) => {
+      await tx.serviceLog.update({
+        where: { id: Number(id) },
+        data: {
+          hourMeter: hour_meter ?? undefined,
+          notes: notes ?? undefined,
+        },
+      });
 
-      const existingMaterials = await tx`
+      const existingMaterials = await tx.$queryRaw`
         SELECT material_id, quantity FROM service_log_materials
         WHERE service_log_id = ${id}
       `;
       for (const m of existingMaterials) {
-        await tx`UPDATE materials SET stock = stock + ${m.quantity} WHERE id = ${m.material_id}`;
+        await tx.$executeRaw`UPDATE materials SET stock = stock + ${m.quantity} WHERE id = ${m.material_id}`;
       }
-      await tx`DELETE FROM service_log_materials WHERE service_log_id = ${id}`;
+      await tx.$executeRaw`DELETE FROM service_log_materials WHERE service_log_id = ${id}`;
 
       for (const m of materials) {
-        await tx`
-          INSERT INTO service_log_materials (service_log_id, material_id, quantity)
-          VALUES (${id}, ${m.material_id}, ${m.quantity})
-        `;
-        await tx`
-          UPDATE materials SET stock = stock - ${m.quantity} WHERE id = ${m.material_id}
-        `;
+        await tx.$executeRaw`INSERT INTO service_log_materials (service_log_id, material_id, quantity) VALUES (${id}, ${m.material_id}, ${m.quantity})`;
+        await tx.$executeRaw`UPDATE materials SET stock = stock - ${m.quantity} WHERE id = ${m.material_id}`;
       }
 
-      const existingConsumables = await tx`
-        SELECT consumable_id, quantity FROM unit_consumables
-        WHERE service_log_id = ${id}
-      `;
+      const existingConsumables = await tx.unitConsumable.findMany({
+        where: { serviceLogId: Number(id) },
+        select: { consumableId: true, quantity: true },
+      });
       for (const c of existingConsumables) {
-        await tx`UPDATE consumable_items SET stock = stock + ${c.quantity} WHERE id = ${c.consumable_id}`;
+        await tx.consumableItem.update({
+          where: { id: c.consumableId },
+          data: { stock: { increment: c.quantity } },
+        });
       }
-      await tx`DELETE FROM unit_consumables WHERE service_log_id = ${id}`;
+      await tx.unitConsumable.deleteMany({ where: { serviceLogId: Number(id) } });
 
-      const unitRow = await tx`SELECT unit_id FROM service_logs WHERE id = ${id}`;
-      const unitId = unitRow[0].unit_id;
+      const unit = await tx.serviceLog.findUnique({
+        where: { id: Number(id) },
+        select: { unitId: true },
+      });
+      const unitId = unit.unitId;
       for (const c of consumables) {
-        await tx`
-          INSERT INTO unit_consumables (service_log_id, unit_id, consumable_id, quantity)
-          VALUES (${id}, ${unitId}, ${c.consumable_id}, ${c.quantity})
-        `;
-        await tx`
-          UPDATE consumable_items SET stock = stock - ${c.quantity} WHERE id = ${c.consumable_id}
-        `;
+        await tx.unitConsumable.create({
+          data: {
+            serviceLogId: Number(id),
+            unitId,
+            consumableId: c.consumable_id,
+            quantity: c.quantity,
+          },
+        });
+        await tx.consumableItem.update({
+          where: { id: c.consumable_id },
+          data: { stock: { decrement: c.quantity } },
+        });
       }
 
-      await tx`DELETE FROM service_log_photos WHERE service_log_id = ${id}`;
+      await tx.$executeRaw`DELETE FROM service_log_photos WHERE service_log_id = ${id}`;
       for (const url of photos) {
-        await tx`
-          INSERT INTO service_log_photos (service_log_id, url)
-          VALUES (${id}, ${url})
-        `;
+        await tx.$executeRaw`INSERT INTO service_log_photos (service_log_id, url) VALUES (${id}, ${url})`;
       }
     });
 
@@ -171,27 +176,30 @@ export async function DELETE(request, { params }) {
 
     const { id } = params;
 
-    await sql.transaction(async (tx) => {
-      const materials = await tx`
+    await prisma.$transaction(async (tx) => {
+      const materials = await tx.$queryRaw`
         SELECT material_id, quantity FROM service_log_materials
         WHERE service_log_id = ${id}
       `;
       for (const m of materials) {
-        await tx`UPDATE materials SET stock = stock + ${m.quantity} WHERE id = ${m.material_id}`;
+        await tx.$executeRaw`UPDATE materials SET stock = stock + ${m.quantity} WHERE id = ${m.material_id}`;
       }
-      await tx`DELETE FROM service_log_materials WHERE service_log_id = ${id}`;
+      await tx.$executeRaw`DELETE FROM service_log_materials WHERE service_log_id = ${id}`;
 
-      const consumables = await tx`
-        SELECT consumable_id, quantity FROM unit_consumables
-        WHERE service_log_id = ${id}
-      `;
+      const consumables = await tx.unitConsumable.findMany({
+        where: { serviceLogId: Number(id) },
+        select: { consumableId: true, quantity: true },
+      });
       for (const c of consumables) {
-        await tx`UPDATE consumable_items SET stock = stock + ${c.quantity} WHERE id = ${c.consumable_id}`;
+        await tx.consumableItem.update({
+          where: { id: c.consumableId },
+          data: { stock: { increment: c.quantity } },
+        });
       }
-      await tx`DELETE FROM unit_consumables WHERE service_log_id = ${id}`;
+      await tx.unitConsumable.deleteMany({ where: { serviceLogId: Number(id) } });
 
-      await tx`DELETE FROM service_log_photos WHERE service_log_id = ${id}`;
-      await tx`DELETE FROM service_logs WHERE id = ${id}`;
+      await tx.$executeRaw`DELETE FROM service_log_photos WHERE service_log_id = ${id}`;
+      await tx.serviceLog.delete({ where: { id: Number(id) } });
     });
 
     return Response.json({ message: "Service log deleted" });
