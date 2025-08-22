@@ -1,7 +1,53 @@
 import { useQuery } from "@tanstack/react-query";
 
+export interface Unit {
+  id: number;
+  company_id: number | null;
+  unit_name: string;
+  model: string | null;
+  model_engine: string | null;
+  model_generator: string | null;
+  serial_number: string | null;
+  serial_number_engine: string | null;
+  serial_number_generator: string | null;
+  install_date: string | null;
+  access_token: string;
+  specifications: string | null;
+  warranty_end: string | null;
+  register_date: string | null;
+  frequency_hz: number | null;
+  rpm: number | null;
+  module_control: string | null;
+  system_operation: string | null;
+  operation_mode: string | null;
+  transfer_system: string | null;
+  oil_capacity_liters: number | null;
+  oil_type: string | null;
+  fuel_filter_part_number: string | null;
+  fuel_filter_qty: number | null;
+  fuel_separator_part_number: string | null;
+  fuel_separator_qty: number | null;
+  oil_filter_part_number: string | null;
+  oil_filter_qty: number | null;
+  air_filter_part_number: string | null;
+  air_filter_qty: number | null;
+  unit_photos: string[];
+  documents: string[] | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+  company_name: string | null;
+  company_address: string | null;
+  contact_person: string | null;
+  company_phone: string | null;
+  company_email: string | null;
+  industry: string | null;
+  customer_photo: string | null;
+}
+
 interface UnitsResponse {
-  units: any[];
+  units: Unit[];
   [key: string]: any;
 }
 
