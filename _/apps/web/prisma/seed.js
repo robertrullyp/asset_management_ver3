@@ -31,6 +31,25 @@ async function main() {
     skipDuplicates: true,
   });
 
+  for (const account of testAccounts) {
+    await prisma.user.upsert({
+      where: { email: account.email },
+      update: {
+        name: account.name,
+        role: account.role,
+        isActive: true,
+        phoneVerified: true,
+      },
+      create: {
+        name: account.name,
+        email: account.email,
+        role: account.role,
+        isActive: true,
+        phoneVerified: true,
+      },
+    });
+  }
+
   const acme = await prisma.company.create({
     data: {
       name: 'Acme Corp',

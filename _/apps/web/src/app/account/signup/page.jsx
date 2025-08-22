@@ -89,11 +89,11 @@ export default function SignUpPage() {
         body: JSON.stringify(formData),
       });
 
-      const data = await response.json();
-
+      const text = await response.text();
       if (!response.ok) {
-        throw new Error(data.error || "Registration failed");
+        throw new Error(text || "Server returned an error");
       }
+      const data = text ? JSON.parse(text) : {};
 
       setSuccess(
         "Registration successful! Please check your phone for verification code.",
@@ -108,7 +108,11 @@ export default function SignUpPage() {
 
       setStep(2);
     } catch (err) {
-      setError(err.message || "Registration failed. Please try again.");
+      setError(
+        err.message
+          ? `Registration failed: ${err.message}`
+          : "Registration failed. Please try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -131,18 +135,22 @@ export default function SignUpPage() {
         }),
       });
 
-      const data = await response.json();
-
+      const text = await response.text();
       if (!response.ok) {
-        throw new Error(data.error || "Verification failed");
+        throw new Error(text || "Server returned an error");
       }
+      const data = text ? JSON.parse(text) : {};
 
       setSuccess("Phone verified successfully! You can now sign in.");
       setTimeout(() => {
         window.location.href = "/account/signin";
       }, 2000);
     } catch (err) {
-      setError(err.message || "Verification failed. Please try again.");
+      setError(
+        err.message
+          ? `Verification failed: ${err.message}`
+          : "Verification failed. Please try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -163,15 +171,19 @@ export default function SignUpPage() {
         }),
       });
 
-      const data = await response.json();
-
+      const text = await response.text();
       if (!response.ok) {
-        throw new Error(data.error || "Failed to resend code");
+        throw new Error(text || "Server returned an error");
       }
+      const data = text ? JSON.parse(text) : {};
 
       setSuccess("Verification code sent to your phone.");
     } catch (err) {
-      setError(err.message || "Failed to resend code. Please try again.");
+      setError(
+        err.message
+          ? `Failed to resend code: ${err.message}`
+          : "Failed to resend code. Please try again."
+      );
     } finally {
       setLoading(false);
     }
