@@ -38,16 +38,12 @@ Create a `.env` file in each app directory with the following keys. Use the prov
 
 This project uses [Prisma](https://www.prisma.io/) for managing PostgreSQL migrations and seeding.
 
-### Migrations
+### Database Initialization
+
+Run the following command to deploy migrations and seed the database during environment setup:
 
 ```
-bun run prisma:migrate
-```
-
-### Seeding
-
-```
-bun run prisma:seed
+bun run db:setup
 ```
 
 The seed script populates sample companies, contacts, units and service logs.
