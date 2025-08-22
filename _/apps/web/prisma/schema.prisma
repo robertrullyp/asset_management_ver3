@@ -151,10 +151,10 @@ model AuthSession {
 }
 
 model AuthVerificationToken {
+  id         Int      @id @default(autoincrement())
   identifier String
   token      String   @unique
   expires    DateTime
 
-  @@unique([identifier, token])
   @@map("auth_verification_token")
 }
