@@ -74,8 +74,40 @@ model ServiceLog {
   createdAt       DateTime         @default(now()) @map("created_at")
   updatedAt       DateTime         @updatedAt @map("updated_at")
   unitConsumables UnitConsumable[]
+  materials       ServiceLogMaterial[]
+  photos          ServiceLogPhoto[]
 
   @@map("service_logs")
+}
+
+model Material {
+  id                  Int                  @id @default(autoincrement())
+  name                String
+  stock               Int                  @default(0)
+  createdAt           DateTime             @default(now()) @map("created_at")
+  serviceLogMaterials ServiceLogMaterial[]
+
+  @@map("materials")
+}
+
+model ServiceLogMaterial {
+  serviceLog   ServiceLog @relation(fields: [serviceLogId], references: [id], onDelete: Cascade)
+  serviceLogId Int        @map("service_log_id")
+  material     Material   @relation(fields: [materialId], references: [id])
+  materialId   Int        @map("material_id")
+  quantity     Int
+
+  @@id([serviceLogId, materialId])
+  @@map("service_log_materials")
+}
+
+model ServiceLogPhoto {
+  id           Int        @id @default(autoincrement())
+  serviceLog   ServiceLog @relation(fields: [serviceLogId], references: [id], onDelete: Cascade)
+  serviceLogId Int        @map("service_log_id")
+  url          String
+
+  @@map("service_log_photos")
 }
 
 model ConsumableItem {

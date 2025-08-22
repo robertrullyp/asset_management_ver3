@@ -80,8 +80,17 @@ export async function POST(request) {
       });
 
       for (const m of materials) {
-        await tx.$executeRaw`INSERT INTO service_log_materials (service_log_id, material_id, quantity) VALUES (${inserted.id}, ${m.material_id}, ${m.quantity})`;
-        await tx.$executeRaw`UPDATE materials SET stock = stock - ${m.quantity} WHERE id = ${m.material_id}`;
+        await tx.serviceLogMaterial.create({
+          data: {
+            serviceLogId: inserted.id,
+            materialId: m.material_id,
+            quantity: m.quantity,
+          },
+        });
+        await tx.material.update({
+          where: { id: m.material_id },
+          data: { stock: { decrement: m.quantity } },
+        });
       }
 
       const consumableTotals = consumables.reduce(
@@ -110,7 +119,9 @@ export async function POST(request) {
       }
 
       for (const url of photos) {
-        await tx.$executeRaw`INSERT INTO service_log_photos (service_log_id, url) VALUES (${inserted.id}, ${url})`;
+        await tx.serviceLogPhoto.create({
+          data: { serviceLogId: inserted.id, url },
+        });
       }
 
       return inserted;

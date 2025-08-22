@@ -6,8 +6,11 @@ async function main() {
   // Clear existing records to allow reseeding without unique constraint errors
   await prisma.$transaction([
     prisma.user.deleteMany(),
+    prisma.serviceLogPhoto.deleteMany(),
+    prisma.serviceLogMaterial.deleteMany(),
     prisma.unitConsumable.deleteMany(),
     prisma.serviceLog.deleteMany(),
+    prisma.material.deleteMany(),
     prisma.unit.deleteMany(),
     prisma.companyContact.deleteMany(),
     prisma.consumableItem.deleteMany(),
