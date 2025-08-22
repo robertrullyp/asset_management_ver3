@@ -91,6 +91,7 @@ model UnitConsumable {
   quantity     Int
   createdAt    DateTime       @default(now()) @map("created_at")
 
+  @@unique([unitId, consumableId, serviceLogId])
   @@map("unit_consumables")
 }
 

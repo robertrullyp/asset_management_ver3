@@ -84,18 +84,28 @@ export async function POST(request) {
         await tx.$executeRaw`UPDATE materials SET stock = stock - ${m.quantity} WHERE id = ${m.material_id}`;
       }
 
-      for (const c of consumables) {
+      const consumableTotals = consumables.reduce(
+        (acc, { consumable_id, quantity }) => {
+          acc.set(
+            consumable_id,
+            (acc.get(consumable_id) ?? 0) + quantity,
+          );
+          return acc;
+        },
+        new Map(),
+      );
+      for (const [consumableId, totalQty] of consumableTotals) {
         await tx.unitConsumable.create({
           data: {
             serviceLogId: inserted.id,
             unitId: unit_id,
-            consumableId: c.consumable_id,
-            quantity: c.quantity,
+            consumableId,
+            quantity: totalQty,
           },
         });
         await tx.consumableItem.update({
-          where: { id: c.consumable_id },
-          data: { stock: { decrement: c.quantity } },
+          where: { id: consumableId },
+          data: { stock: { decrement: totalQty } },
         });
       }
 
