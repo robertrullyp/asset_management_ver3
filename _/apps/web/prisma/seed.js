@@ -22,16 +22,22 @@ async function main() {
   ];
 
   for (const account of testAccounts) {
-    await prisma.$executeRaw`
-      INSERT INTO users (name, email, role, is_active, phone_verified)
-      VALUES (${account.name}, ${account.email}, ${account.role}, true, true)
-      ON CONFLICT (email) DO UPDATE SET
-        name = EXCLUDED.name,
-        role = EXCLUDED.role,
-        is_active = true,
-        phone_verified = true,
-        updated_at = CURRENT_TIMESTAMP;
-    `;
+    await prisma.user.upsert({
+      where: { email: account.email },
+      update: {
+        name: account.name,
+        role: account.role,
+        isActive: true,
+        phoneVerified: true,
+      },
+      create: {
+        name: account.name,
+        email: account.email,
+        role: account.role,
+        isActive: true,
+        phoneVerified: true,
+      },
+    });
   }
 
   const acme = await prisma.company.create({
