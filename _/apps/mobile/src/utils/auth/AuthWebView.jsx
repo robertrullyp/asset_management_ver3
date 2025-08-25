@@ -9,8 +9,13 @@ const callbackQueryString = `callbackUrl=${callbackUrl}`;
 
 /**
  * This renders a WebView for authentication and handles both web and native platforms.
+ *
+ * @param {string} mode - Authentication mode.
+ * @param {string} proxyURL - Proxy base URL.
+ * @param {string} baseURL - API base URL.
+ * @param {string} [redirectTo='/dashboard'] - Final route after successful auth.
  */
-export const AuthWebView = ({ mode, proxyURL, baseURL }) => {
+export const AuthWebView = ({ mode, proxyURL, baseURL, redirectTo = '/dashboard' }) => {
   const [currentURI, setURI] = useState(`${baseURL}/account/${mode}?${callbackQueryString}`);
   const { auth, setAuth, isReady } = useAuthStore();
   const isAuthenticated = isReady ? !!auth : null;
@@ -20,9 +25,9 @@ export const AuthWebView = ({ mode, proxyURL, baseURL }) => {
       return;
     }
     if (isAuthenticated) {
-      router.back();
+      router.replace(redirectTo);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, redirectTo]);
   useEffect(() => {
     if (isAuthenticated) {
       return;
