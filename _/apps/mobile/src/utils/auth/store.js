@@ -15,7 +15,7 @@ export const useAuthStore = create((set) => ({
     } else {
       SecureStore.deleteItemAsync(authKey);
     }
-    set({ auth });
+    set({ auth, isReady: true });
   },
 }));
 
