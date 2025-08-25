@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useNavigate } from "react-router";
 import useAuth from "@/utils/useAuth";
 import { Eye, EyeOff, Wrench } from "lucide-react";
 
@@ -14,6 +15,8 @@ export default function SignInPage() {
   const [debugInfo, setDebugInfo] = useState("");
 
   const { signInWithCredentials, signInWithGoogle } = useAuth();
+  const navigate = useNavigate();
+  const callbackUrl = "/";
 
   const onSubmit = async (e) => {
     e.preventDefault();
@@ -51,9 +54,10 @@ export default function SignInPage() {
     } catch (err) {
       console.error("Main sign in error:", err);
       setDebugInfo("Main auth failed, trying fallback...");
+    }
 
-      // Try fallback method for all errors
-      try {
+    // Try fallback method for all errors
+    try {
         console.log("Trying fallback authentication method...");
 
         const response = await fetch("/api/auth/simple-signin", {
@@ -73,10 +77,7 @@ export default function SignInPage() {
 
         if (data.success) {
           setDebugInfo("Fallback auth successful! Redirecting...");
-          // Small delay to show success message
-          setTimeout(() => {
-            window.location.href = "/";
-          }, 500);
+          navigate("/");
           return;
         } else {
           console.error("Fallback failed:", data);
@@ -95,7 +96,6 @@ export default function SignInPage() {
       }
 
       setLoading(false);
-    }
   };
 
   const handleGoogleSignIn = async () => {
