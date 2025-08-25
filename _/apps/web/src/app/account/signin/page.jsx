@@ -31,18 +31,23 @@ export default function SignInPage() {
       console.log("Attempting to sign in with:", email);
       setDebugInfo("Trying main authentication...");
 
-      await signInWithCredentials({
+      const result = await signInWithCredentials({
         email,
         password,
         callbackUrl: "/",
-        redirect: true,
+        redirect: false,
       });
 
-      // If we get here, it means auth was successful but didn't redirect
+      if (result?.error) {
+        console.error("Main sign in error:", result.error);
+        setError(result.error);
+        setDebugInfo("Main auth failed.");
+        setLoading(false);
+        return;
+      }
+
       setDebugInfo("Main auth successful! Redirecting...");
-      setTimeout(() => {
-        window.location.replace("/");
-      }, 1000);
+      window.location.href = result?.url ?? "/";
     } catch (err) {
       console.error("Main sign in error:", err);
       setDebugInfo("Main auth failed, trying fallback...");
