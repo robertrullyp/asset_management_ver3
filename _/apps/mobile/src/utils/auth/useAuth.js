@@ -1,8 +1,5 @@
-import { router } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
-import { useCallback, useEffect, useMemo } from 'react';
-import { create } from 'zustand';
-import { Modal, View } from 'react-native';
+import { useCallback, useEffect } from 'react';
 import { useAuthModal, useAuthStore, authKey } from './store';
 
 
@@ -14,7 +11,7 @@ import { useAuthModal, useAuthStore, authKey } from './store';
  */
 export const useAuth = () => {
   const { isReady, auth, setAuth } = useAuthStore();
-  const { isOpen, close, open } = useAuthModal();
+  const { close, open } = useAuthModal();
 
   const initiate = useCallback(() => {
     SecureStore.getItemAsync(authKey).then((auth) => {
@@ -25,7 +22,9 @@ export const useAuth = () => {
     });
   }, []);
 
-  useEffect(() => {}, []);
+  useEffect(() => {
+    initiate();
+  }, [initiate]);
 
   const signIn = useCallback(() => {
     open({ mode: 'signin' });
@@ -64,5 +63,4 @@ export const useRequireAuth = (options) => {
     }
   }, [isAuthenticated, open, options?.mode, isReady]);
 };
-
 export default useAuth;
